@@ -1,10 +1,19 @@
-Welcome to jukart's blog!
-=========================
+Jürgen Kartnaller @ Lovely Systems
+-----------------------------------
 
-Contents:
+Hi, this is the place where I try to give interesting things of my technical
+life to the world.
+
+I'm Senior Software Developer at
+`Lovely Systems <http://www.lovelysystems.com>`_ .
+
+.. note::
+
+    This is a pure technical page!
+
+Here is what I have for you:
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
 
-    about
-    making_of
+    The making of this page <making_of>

@@ -1,3 +1,5 @@
+.. _making-of:
+
 =========
 Making Of
 =========
@@ -12,6 +14,8 @@ Github Repository
 
 First you need to setup a new repository with the name <gituser>.github.io.
 
+More info about github pages can be found here: `<https://pages.github.com/>`_
+
 
 Managing The Repository And Deployment
 ======================================
@@ -23,7 +27,7 @@ repository. A user-page is rendered from the `master` branch not from
 `gh-pages`. So I reverted the use of the branches in the Makefile to have the
 sources in the branch `page` and build into `master` branch.
 
-First create a new orphaned branch::
+First create a new orphan branch::
 
     >>> git checkout --orphan page
     >>> git rm -rf .
