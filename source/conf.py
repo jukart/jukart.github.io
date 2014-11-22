@@ -12,8 +12,8 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
-import os
+import sys  # noqa
+import os   # noqa
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -46,7 +46,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'jukart'
-copyright = u'2014, Juergen Kartnaller'
+copyright = u'2014, Jürgen Kartnaller'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -200,25 +200,27 @@ htmlhelp_basename = 'jukartdoc'
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
-# The paper size ('letterpaper' or 'a4paper').
-#'papersize': 'letterpaper',
+    # The paper size ('letterpaper' or 'a4paper').
+    #'papersize': 'letterpaper',
 
-# The font size ('10pt', '11pt' or '12pt').
-#'pointsize': '10pt',
+    # The font size ('10pt', '11pt' or '12pt').
+    #'pointsize': '10pt',
 
-# Additional stuff for the LaTeX preamble.
-#'preamble': '',
+    # Additional stuff for the LaTeX preamble.
+    #'preamble': '',
 
-# Latex figure (float) alignment
-#'figure_align': 'htbp',
+    # Latex figure (float) alignment
+    #'figure_align': 'htbp',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'jukart.tex', u'jukart Documentation',
-   u'Juergen Kartnaller', 'manual'),
+    ('index',
+     'jukart.tex',
+     u'jukart\'s Blog',
+     u'Jürgen Kartnaller', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -247,8 +249,10 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'jukart', u'jukart Documentation',
-     [u'Juergen Kartnaller'], 1)
+    ('index',
+     'jukart',
+     u'jukart\' Blog',
+     [u'Jürgen Kartnaller'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -261,9 +265,13 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'jukart', u'jukart Documentation',
-   u'Juergen Kartnaller', 'jukart', 'One line description of project.',
-   'Miscellaneous'),
+    ('index',
+     'jukart',
+     u'jukart\'s Blog',
+     u'Jürgen Kartnaller',
+     'jukart',
+     'My blogs.',
+     'Blog'),
 ]
 
 # Documents to append as an appendix to all manuals.
