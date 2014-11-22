@@ -1,1 +1,1 @@
-Search.setIndex({envversion:46,terms:{content:0,index:0,modul:0,search:0,page:0},objtypes:{},objnames:{},filenames:["index"],titles:["Welcome to jukart&#8217;s blob!"],objects:{},titleterms:{welcom:0,jukart:0,blob:0,indic:0,tabl:0}})
+Search.setIndex({envversion:46,terms:{content:0},objtypes:{},objnames:{},filenames:["index","about"],titles:["Welcome to jukart&#8217;s blob!","About Me"],objects:{},titleterms:{about:1,jukart:0,welcom:0,blob:0}})
