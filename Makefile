@@ -193,5 +193,5 @@ deploy:
 	mv -fv build/html/* ./
 	rm -rf $(PAGE_SOURCES) build
 	git add -A
-	git ci -m "Generated page for `git log master -1 --pretty=short --abbrev-commit`" && git push origin master ; git checkout page
+	git commit -m "Generated page for `git log master -1 --pretty=short --abbrev-commit`" && git push origin master ; git checkout page
 
