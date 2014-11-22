@@ -181,3 +181,17 @@ pseudoxml:
 	$(SPHINXBUILD) -b pseudoxml $(ALLSPHINXOPTS) $(BUILDDIR)/pseudoxml
 	@echo
 	@echo "Build finished. The pseudo-XML files are in $(BUILDDIR)/pseudoxml."
+
+PAGE_SOURCES = source Makefile
+
+deploy:
+	git checkout master
+	rm -rf build _sources _static
+	git checkout page $(PAGE_SOURCES)
+	git reset HEAD
+	make html
+	mv -fv build/html/* ./
+	rm -rf $(PAGE_SOURCES) build
+	git add -A
+	git ci -m "Generated page for `git log master -1 --pretty=short --abbrev-commit`" && git push origin master ; git checkout page
+
