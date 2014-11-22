@@ -1,0 +1,389 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>IID Generator Using Elasticsearch &mdash; jukart&#39;s Blog</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="top" title="jukart&#39;s Blog" href="index.html"/>
+        <link rel="next" title="Making Of" href="making_of.html"/>
+        <link rel="prev" title="Jürgen Kartnaller @ Lovely Systems" href="index.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+          <a href="index.html" class="fa fa-home"> jukart</a>
+        
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+        
+            <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="">IID Generator Using Elasticsearch</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#generator-explained-curl">Generator Explained (curl)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#optimized-for-real-world-use">Optimized for real world use</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#with-python">With Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="making_of.html">The making of this page</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="making_of.html#github-repository">Github Repository</a></li>
+<li class="toctree-l2"><a class="reference internal" href="making_of.html#managing-the-repository-and-deployment">Managing The Repository And Deployment</a></li>
+</ul>
+</li>
+</ul>
+
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">jukart</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html" class="fa fa-home">Home</a> &raquo;</li>
+      
+    <li>IID Generator Using Elasticsearch</li>
+      <li class="wy-breadcrumbs-aside">
+        <a href="http://www.lovelysystems.com">Lovely Systems</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <div class="section" id="iid-generator-using-elasticsearch">
+<h1>IID Generator Using Elasticsearch<a class="headerlink" href="#iid-generator-using-elasticsearch" title="Permalink to this headline">¶</a></h1>
+<p>At our company we are using <a class="reference external" href="http://crate.io">Crate</a> as our database. Crate
+has no built in support for autoincrementing integer ids.</p>
+<p>So I came up to build my own generator:</p>
+<blockquote>
+<div><ul class="simple">
+<li>needs to be fast (so not really superfast)</li>
+<li>needs to work on a distributed system</li>
+</ul>
+</div></blockquote>
+<p>First I found this <a class="reference external" href="http://blogs.perl.org/users/clinton_gormley/2011/10/elasticsearchsequence---a-blazing-fast-ticket-server.html">blog post from Clinton Gormley</a>
+expaining how to use the version numbering built into elasticsearch to create
+ids. The use is really simple but it has a big disadvantage, it can not be
+backuped useing simple bulk files because it is not possible to write the
+_version back into elasticsearch.</p>
+<p>The current iid value needs to be stored in the _source of the document to be
+able to dump the data.</p>
+<div class="section" id="generator-explained-curl">
+<h2>Generator Explained (curl)<a class="headerlink" href="#generator-explained-curl" title="Permalink to this headline">¶</a></h2>
+<p>First I create a new document containing an integer value:</p>
+<div class="highlight-python"><div class="highlight"><pre>&gt;&gt;&gt; curl -XPUT http://localhost:9200/sequence/sequence/1?pretty= -d &#39;{&quot;iid&quot;: 0}&#39;
+{
+    &quot;_index&quot; : &quot;sequence&quot;,
+    &quot;_type&quot; : &quot;sequence&quot;,
+    &quot;_id&quot; : &quot;1&quot;,
+    &quot;_version&quot; : 1,
+    &quot;created&quot; : true
+}
+</pre></div>
+</div>
+<p>First I need to increment the current id. This can be done without the need of
+a read/modify/write cycle of the document by using the _update API:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">curl</span> <span class="o">-</span><span class="n">XPOST</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="p">:</span><span class="mi">9200</span><span class="o">/</span><span class="n">sequence</span><span class="o">/</span><span class="n">sequence</span><span class="o">/</span><span class="mi">1</span><span class="o">/</span><span class="n">_update</span> <span class="o">-</span><span class="n">d</span> <span class="s">&#39;</span>
+<span class="gp">... </span><span class="p">{</span>
+<span class="gp">... </span>    <span class="s">&quot;script&quot;</span><span class="p">:</span> <span class="s">&quot;ctx._source.iid += 1&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s">&quot;lang&quot;</span><span class="p">:</span> <span class="s">&quot;groovy&quot;</span>
+<span class="gp">... </span><span class="p">}</span>
+<span class="gp">... </span><span class="s">&#39;</span>
+<span class="go">{</span>
+<span class="go">    &quot;_index&quot; : &quot;sequence&quot;,</span>
+<span class="go">    &quot;_type&quot; : &quot;sequence&quot;,</span>
+<span class="go">    &quot;_id&quot; : &quot;1&quot;,</span>
+<span class="go">    &quot;_version&quot; : 2</span>
+<span class="go">}</span>
+</pre></div>
+</div>
+<p>The response is not returning the changed document. With the parameter
+<cite>fields</cite> the fields to be returns can be specified:</p>
+<div class="highlight-python"><div class="highlight"><pre>&gt;&gt;&gt; curl -XPOST http://localhost:9200/sequence/sequence/1/_update?fields=iid -d &#39;
+... {
+...     &quot;script&quot;: &quot;ctx._source.iid += 1&quot;,
+...     &quot;lang&quot;: &quot;groovy&quot;
+... }
+... &#39;
+{
+    &quot;_index&quot; : &quot;sequence&quot;,
+    &quot;_type&quot; : &quot;sequence&quot;,
+    &quot;_id&quot; : &quot;1&quot;,
+    &quot;_version&quot; : 3,
+    &quot;get&quot; : {
+        &quot;found&quot; : true,
+        &quot;fields&quot; : {
+            &quot;iid&quot; : [ 2 ]
+        }
+    }
+}
+</pre></div>
+</div>
+<p>All this works but it is not performing very good because I need a request
+for every id. But it is also possible to request a bulk of ids by incrementing
+the id by more than just 1:</p>
+<div class="highlight-python"><div class="highlight"><pre>&gt;&gt;&gt; curl -XPOST http://localhost:9200/sequence/sequence/1/_update?fields=iid -d &#39;
+... {
+...     &quot;script&quot;: &quot;ctx._source.iid += bulk_size&quot;,
+...     &quot;params&quot;: {&quot;bulk_size&quot;: 10},
+...     &quot;lang&quot;: &quot;groovy&quot;
+... }
+... &#39;
+{
+    &quot;_index&quot; : &quot;sequence&quot;,
+    &quot;_type&quot; : &quot;sequence&quot;,
+    &quot;_id&quot; : &quot;1&quot;,
+    &quot;_version&quot; : 4,
+    &quot;get&quot; : {
+        &quot;found&quot; : true,
+        &quot;fields&quot; : {
+            &quot;iid&quot; : [ 12 ]
+        }
+    }
+}
+</pre></div>
+</div>
+<p>Now I have requested 10 ids in one request. The ids I am allowed to use are
+in the range(iid-10+1, iid).</p>
+<p>Also note how I used the script this time. I use the <cite>params</cite> to define the
+<cite>bulk size</cite>. This has the advantage that the script code is always the same.
+elasticsearch can now use the cached version of the script and work faster
+because it needs to compile the code only once.</p>
+<p>The disadvantage in using bulks is that it is possible to create holes if an
+app is restarted which has not fully consumed the reuested bulk.</p>
+</div>
+<div class="section" id="optimized-for-real-world-use">
+<h2>Optimized for real world use<a class="headerlink" href="#optimized-for-real-world-use" title="Permalink to this headline">¶</a></h2>
+<p>First I configure the index with a mapping. This needs to be done before the
+first write to the index:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">curl</span> <span class="o">-</span><span class="n">XPOST</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="p">:</span><span class="mi">9200</span><span class="o">/</span><span class="n">sequence</span><span class="o">/</span><span class="n">_mapping</span> <span class="o">-</span><span class="n">d</span> <span class="s">&#39;</span>
+<span class="gp">... </span><span class="p">{</span>
+<span class="gp">... </span>    <span class="s">&quot;settings&quot;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>        <span class="s">&quot;number_of_shards&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="s">&quot;auto_expand_replicas&quot;</span><span class="p">:</span> <span class="s">&quot;0-all&quot;</span>
+<span class="gp">... </span>    <span class="p">},</span>
+<span class="gp">... </span>    <span class="s">&quot;mappings&quot;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>        <span class="s">&quot;sequence&quot;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>            <span class="s">&quot;_all&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s">&quot;enabled&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
+<span class="gp">... </span>            <span class="s">&quot;_type&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s">&quot;index&quot;</span><span class="p">:</span> <span class="s">&quot;no&quot;</span><span class="p">},</span>
+<span class="gp">... </span>            <span class="s">&quot;dynamic&quot;</span><span class="p">:</span> <span class="s">&quot;strict&quot;</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="s">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>                <span class="s">&quot;iid&quot;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>                    <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;string&quot;</span><span class="p">,</span>
+<span class="gp">... </span>                    <span class="s">&quot;index&quot;</span><span class="p">:</span> <span class="s">&quot;no&quot;</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="p">},</span>
+<span class="gp">... </span>            <span class="p">},</span>
+<span class="gp">... </span>        <span class="p">}</span>
+<span class="gp">... </span>    <span class="p">}</span>
+<span class="gp">... </span><span class="p">}</span><span class="s">&#39;</span>
+</pre></div>
+</div>
+<p>Then I optimize the update request:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">curl</span> <span class="o">-</span><span class="n">XPOST</span> <span class="s">&quot;http://localhost:9200/sequence/sequence/1/_update?fields=iid&amp;retry_on_conflict=5&quot;</span> <span class="o">-</span><span class="n">d</span> <span class="s">&#39;</span>
+<span class="gp">... </span><span class="p">{</span>
+<span class="gp">... </span>    <span class="s">&quot;script&quot;</span><span class="p">:</span> <span class="s">&quot;ctx._source.iid += bulk_size&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s">&quot;bulk_size&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">},</span>
+<span class="gp">... </span>    <span class="s">&quot;lang&quot;</span><span class="p">:</span> <span class="s">&quot;groovy&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s">&quot;upsert&quot;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>        <span class="s">&#39;iid&#39;</span><span class="p">:</span> <span class="mi">10</span>
+<span class="gp">... </span>    <span class="p">},</span>
+<span class="gp">... </span><span class="p">}</span><span class="s">&#39;</span>
+</pre></div>
+</div>
+<p><cite>upsert</cite> will be used if the document doesn&#8217;t exists to create the document
+with the initial data. The value for <cite>iid</cite> must always be set to the
+bulk_size.</p>
+<p>The query parameter <cite>retry_on_conflict</cite> will retry the update if there is a
+version conflict from the time the document is read until it is updated.</p>
+</div>
+<div class="section" id="with-python">
+<h2>With Python<a class="headerlink" href="#with-python" title="Permalink to this headline">¶</a></h2>
+<p>This is how it can be used with the <a class="reference external" href="http://elasticsearch-py.readthedocs.org/">elasticsearch python client</a>.</p>
+<p>Get a client instance:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">elasticsearch</span> <span class="kn">import</span> <span class="n">Elasticsearch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">es</span> <span class="o">=</span> <span class="n">Elasticsearch</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Create the mapping:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">es</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="s">&#39;sequence&#39;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="p">{</span>
+<span class="gp">... </span>        <span class="s">&quot;settings&quot;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>            <span class="s">&quot;number_of_shards&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="s">&quot;auto_expand_replicas&quot;</span><span class="p">:</span> <span class="s">&quot;0-all&quot;</span>
+<span class="gp">... </span>        <span class="p">},</span>
+<span class="gp">... </span>        <span class="s">&quot;mappings&quot;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>            <span class="s">&quot;sequence&quot;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>                <span class="s">&quot;_all&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s">&quot;enabled&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
+<span class="gp">... </span>                <span class="s">&quot;_type&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s">&quot;index&quot;</span><span class="p">:</span> <span class="s">&quot;no&quot;</span><span class="p">},</span>
+<span class="gp">... </span>                <span class="s">&quot;dynamic&quot;</span><span class="p">:</span> <span class="s">&quot;strict&quot;</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="s">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>                    <span class="s">&quot;iid&quot;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>                        <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;string&quot;</span><span class="p">,</span>
+<span class="gp">... </span>                        <span class="s">&quot;index&quot;</span><span class="p">:</span> <span class="s">&quot;no&quot;</span><span class="p">,</span>
+<span class="gp">... </span>                    <span class="p">},</span>
+<span class="gp">... </span>                <span class="p">},</span>
+<span class="gp">... </span>            <span class="p">}</span>
+<span class="gp">... </span>        <span class="p">}</span>
+<span class="gp">... </span>    <span class="p">},</span>
+<span class="gp">... </span>    <span class="n">ignore</span><span class="o">=</span><span class="mi">400</span>  <span class="c"># ignore index already exists</span>
+<span class="gp">... </span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Request a bulk:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">bulk_size</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_es_client</span><span class="p">()</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="s">&#39;lc_iidsequences&#39;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">doc_type</span><span class="o">=</span><span class="s">&#39;iid&#39;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="nb">id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">body</span><span class="o">=</span><span class="p">{</span>
+<span class="gp">... </span>        <span class="s">&quot;script&quot;</span><span class="p">:</span> <span class="s">&quot;ctx._source[&#39;iid&#39;] += bulk_size&quot;</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="s">&quot;lang&quot;</span><span class="p">:</span> <span class="s">&quot;groovy&quot;</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="s">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>            <span class="s">&quot;bulk_size&quot;</span><span class="p">:</span> <span class="n">bulk_size</span>
+<span class="gp">... </span>        <span class="p">},</span>
+<span class="gp">... </span>        <span class="s">&quot;upsert&quot;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>            <span class="s">&#39;iid&#39;</span><span class="p">:</span> <span class="n">bulk_size</span>
+<span class="gp">... </span>        <span class="p">},</span>
+<span class="gp">... </span>    <span class="p">},</span>
+<span class="gp">... </span>    <span class="n">retry_on_conflict</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">fields</span><span class="o">=</span><span class="s">&#39;iid&#39;</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">iid</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s">&#39;get&#39;</span><span class="p">][</span><span class="s">&#39;fields&#39;</span><span class="p">][</span><span class="s">&#39;iid&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bulk</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">iid</span><span class="p">,</span> <span class="n">iid</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">bulk_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now the ids can be retrieved from <cite>bulk</cite> until it is exhausted:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">id</span> <span class="o">=</span> <span class="n">bulk</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="references">
+<h2>References<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference external" href="http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/docs-update.html">elasticsearch _update API</a></li>
+<li><a class="reference external" href="http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-put-mapping.html">elasticsearch _mapping API</a></li>
+</ul>
+</div></blockquote>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="making_of.html" class="btn btn-neutral float-right" title="Making Of">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral" title="Jürgen Kartnaller @ Lovely Systems"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+    </p>
+  </div>
+
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -11,9 +11,10 @@ I'm Senior Software Developer at
 
     This is a pure technical page!
 
-Here is what I have for you:
+Here's an index of my pages for you:
 
 .. toctree::
     :maxdepth: 1
 
+    esiidgenerator
     The making of this page <making_of>
