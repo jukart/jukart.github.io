@@ -11,10 +11,17 @@ I'm Senior Software Developer at
 
     This is a pure technical page!
 
-Here's an index of my pages for you:
+My pages for you
+----------------
 
 .. toctree::
     :maxdepth: 1
 
     esiidgenerator
     The making of this page <making_of>
+
+
+Important Links
+---------------
+
+    - `Do not interrupt a programmer <http://heeris.id.au/2013/this-is-why-you-shouldnt-interrupt-a-programmer/>`_
