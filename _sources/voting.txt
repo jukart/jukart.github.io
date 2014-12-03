@@ -3,5 +3,5 @@ voting
 
 .. raw:: html
 
-    <div id="rawr-embed-rfr9ygy"></div>
-    <script src="https://rawr-staging.lovelysystems.com/api/v1/embed/rawr/rfr9ygy.js?sq=1&t=0&st=0"></script>
+    <div id="rawr-embed-HE3N1"></div>
+    <script src="https://cdn-rawr-production.global.ssl.fastly.net/api/v1/embed/rawr/HE3N1.js?sq=1&t=0&st=0"></script>
