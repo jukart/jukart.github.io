@@ -62,7 +62,8 @@ With `make deploy` you are now able to completely deploy you page into
 
     <div id="disqus_thread"></div>
     <script type="text/javascript">
-        var disqus_shortname = 'jukartgithubio'; // required: replace example with your forum shortname
+        var disqus_shortname = 'jukartgithubio';
+        var disqus_identifier = 'making_of';
         (function() {
             var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
             dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
