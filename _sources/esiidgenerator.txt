@@ -21,7 +21,7 @@ able to dump the data.
 
 
 Generator Explained (curl)
-==========================
+--------------------------
 
 First I create a new document containing an integer value::
 
@@ -109,7 +109,7 @@ app is restarted which has not fully consumed the reuested bulk.
 
 
 Optimized for real world use
-============================
+----------------------------
 
 First I configure the index with a mapping. This needs to be done before the
 first write to the index::
@@ -156,7 +156,7 @@ version conflict from the time the document is read until it is updated.
 
 
 With Python
-===========
+-----------
 
 This is how it can be used with the `elasticsearch python client <http://elasticsearch-py.readthedocs.org/>`_.
 
@@ -220,7 +220,7 @@ Now the ids can be retrieved from `bulk` until it is exhausted::
 
 
 References
-==========
+----------
 
     - `elasticsearch _update API <http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/docs-update.html>`_
     - `elasticsearch _mapping API <http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-put-mapping.html>`_
