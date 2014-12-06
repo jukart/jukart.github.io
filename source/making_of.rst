@@ -8,7 +8,7 @@ This page is hosted on `github <https://github.com>`_ and built using
 Here is how I managed to build and deploy this page.
 
 Github Repository
-=================
+-----------------
 
 First you need to setup a new repository with the name <gituser>.github.io.
 
@@ -16,7 +16,7 @@ More info about github pages can be found here: `<https://pages.github.com/>`_
 
 
 Managing The Repository And Deployment
-======================================
+--------------------------------------
 
 This was inspired by `Nikhil Marathe's blog <http://blog.nikhilism.com/2012/08/automatic-github-pages-generation-from.html>`_
 
