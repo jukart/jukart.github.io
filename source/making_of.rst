@@ -58,7 +58,7 @@ With `make deploy` you are now able to completely deploy you page into
     >>> make deploy
 
 
-.. raw:: html:
+.. raw:: html
 
     <div id="disqus_thread"></div>
     <script type="text/javascript">
